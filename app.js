@@ -6,6 +6,10 @@ const morgan = require('morgan');
 const debug = require('debug')('app');
 const path = require('path');
 const bodyParser = require('body-parser')
+const passport = require('passport')
+const cookieParser = require('cookie-parser')
+const session = require('express-session')
+const mongoose = require('mongoose')
 // const things = require('./things.js');
 const port = process.env.PORT || 7000
 const  nav =[
@@ -19,12 +23,16 @@ var authRouter = require('./src/routes/authRoutes')(nav)
   debug('my middleware')
   next()
 }) */
+/* mongoose.connect('mongodb://localhost:27017', () => {
+  console.log('Connected to mongodb via mongoose')
+}) */
 app.use(morgan('tiny'));
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({extended: false}))
-app.use('/books', bookRouter)
-app.use('/admin',adminRouter)
-app.use('/auth',authRouter)
+app.use(cookieParser())
+app.use(session({ secret: 'library'}))
+require('./src/config/passport-setup')(app)
+// static content
 app.use(express.static(path.join(__dirname, '/public')))
 app.use('/css', express.static(path.join(__dirname, 'node_modules/bootstrap/dist/css')))
 app.use('/js', express.static(path.join(__dirname, 'node_modules/bootstrap/dist/js')))
@@ -32,6 +40,10 @@ app.use('/fonts', express.static(path.join(__dirname, 'node_modules/bootstrap/di
 app.set('views', './src/views')
 //app.set('view engine','pug')
 app.set('view engine', 'ejs')
+// routes
+app.use('/books', bookRouter)
+app.use('/admin',adminRouter)
+app.use('/auth',authRouter)
 
 app.get('/', (req, res) => {
   //res.sendFile(path.join(__dirname, 'views', 'index.html'));
@@ -42,7 +54,8 @@ app.get('/', (req, res) => {
      -  Source Unknown`,
     nav: [
       { link: '/books', title: 'books' },
-      { link: '/authors', title: 'authors' }]
+      { link: '/authors', title: 'authors' }],
+      user: req.user
   })
 });
 app.get('/authors',(req,res) => {
